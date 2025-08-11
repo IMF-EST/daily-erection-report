@@ -9,7 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     :root {
-      --card-w: 950px;
+      --wrap-w: 1100px; /* comfortable editor width for landscape */
       --gap: 12px;
       --border: 1px solid #d9d9d9;
       --muted: #6b7280;
@@ -25,7 +25,7 @@
       color: var(--ink);
     }
     .wrap {
-      max-width: var(--card-w);
+      max-width: var(--wrap-w);
       margin: 24px auto 56px;
       padding: 20px;
     }
@@ -44,11 +44,10 @@
       border-bottom: var(--border);
     }
     header img.logo { width: 160px; height: auto; }
-    header h1 {
-      font-size: 22px; margin: 0;
-    }
+    header h1 { font-size: 22px; margin: 0; }
     .section { padding: 18px 22px; border-bottom: var(--border); }
     .section:last-child { border-bottom: 0; }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(12, 1fr);
@@ -63,16 +62,17 @@
       width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #cfd3da; font-size: 14px;
       outline: none; background: #fff;
     }
-    textarea { min-height: 90px; resize: vertical; }
+    input[type="time"] { font-variant-numeric: tabular-nums; }
+    textarea { min-height: 70px; resize: vertical; }
     .muted { color: var(--muted); font-size: 13px; }
-    table {
-      width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px;
+
+    table.form {
+      width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 6px;
     }
-    th, td {
-      border: 1px solid #e5e7eb; padding: 8px; text-align: left;
-    }
-    th { background: #f9fafb; font-weight: 600; }
-    .tbl-actions { text-align: right; padding-top: 6px; }
+    table.form th, table.form td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; vertical-align: top; }
+    table.form th { background: #f9fafb; font-weight: 700; }
+    .row-actions { text-align: right; margin-top: 6px; }
+
     .btn {
       display: inline-flex; align-items: center; gap: 8px;
       border: 1px solid #cfd3da; background: #fff; color: #111827;
@@ -80,19 +80,21 @@
     }
     .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
     .btn-row { display: flex; gap: 10px; justify-content: flex-end; padding: 16px 22px; }
-    /* Print template styling (what gets rendered into PDF) */
+
+    /* Print template (landscape) */
     #printView {
-      width: 794px;               /* A4 width @ 96dpi approx */
-      padding: 24px;
-      background: #fff; color: #000; font-size: 13px; line-height: 1.35;
+      width: 1123px; /* A4 landscape width @ ~96dpi */
+      padding: 16px 20px;
+      background: #fff; color: #000; font-size: 12.5px; line-height: 1.35;
       border: 1px solid #e5e7eb; margin: 0 auto; display:none;
     }
-    #printView h2 { margin: 0 0 8px; font-size: 18px; }
+    #printView h2 { margin: 0 0 6px; font-size: 18px; }
     #printView .row { display:flex; gap:10px; margin-bottom: 6px; }
     #printView .row > div { flex:1; }
     #printView table { width:100%; border-collapse: collapse; margin-top: 6px; }
-    #printView th, #printView td { border:1px solid #111; padding:6px; }
+    #printView th, #printView td { border:1px solid #111; padding:6px; vertical-align: top; }
     #printView th { background:#f3f4f6; }
+    #printView small { color:#444; }
   </style>
 </head>
 <body>
@@ -102,7 +104,7 @@
         <img src="logo.png" alt="Logo" class="logo" />
         <div>
           <h1>Daily Erection Report</h1>
-          <div class="muted">Fill the form below and click “Export PDF”. Day & Date fill automatically.</div>
+          <!-- (Helper sentence removed per your note) -->
         </div>
       </header>
 
@@ -120,7 +122,7 @@
           <div class="col-6">
             <label>Engineer</label>
             <select id="engineer">
-              <!-- Add/edit names here -->
+              <!-- Edit your list here -->
               <option value="Mohammad Asakreh">Mohammad Asakreh</option>
               <option value="Ahmad Shaban">Ahmad Shaban</option>
               <option value="Sara">Sara</option>
@@ -130,94 +132,148 @@
         </div>
       </div>
 
-      <!-- Project / timing / contractor -->
+      <!-- Three per-project tables -->
       <div class="section">
-        <div class="grid">
-          <div class="col-6">
-            <label>Project Name</label>
-            <input id="projectName" type="text" placeholder="Project / Site" />
-          </div>
-          <div class="col-3">
-            <label>Start Time</label>
-            <input id="startTime" type="time" />
-          </div>
-          <div class="col-3">
-            <label>Finish Time</label>
-            <input id="finishTime" type="time" />
-          </div>
-          <div class="col-6">
-            <label>Contractor</label>
-            <input id="contractor" type="text" placeholder="Contractor Name" />
-          </div>
-          <div class="col-12">
-            <label>Description of Work</label>
-            <textarea id="workDesc" placeholder="Describe the work performed today..."></textarea>
-          </div>
-        </div>
-      </div>
+        <strong>Projects (up to three)</strong>
+        <div class="muted">Each table includes Project, Contractor, Start/Finish, Work Description, and Crew.</div>
 
-      <!-- Crew -->
-      <div class="section">
-        <strong>Crew Members</strong>
-        <div class="muted">Add names and titles/roles.</div>
-        <table id="crewTable">
-          <thead>
-            <tr>
-              <th style="width:55%">Name</th>
-              <th style="width:35%">Title</th>
-              <th style="width:10%">—</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
+        <!-- Project 1 -->
+        <h3 style="margin:14px 0 6px;">Project 1</h3>
+        <table class="form" data-proj="1">
+          <tr>
+            <th style="width:28%">Project Name</th>
+            <td><input id="p1_name" type="text" placeholder="Project / Site" /></td>
+            <th style="width:22%">Contractor</th>
+            <td><input id="p1_contractor" type="text" placeholder="Contractor Name" /></td>
+          </tr>
+          <tr>
+            <th>Start Time</th>
+            <td><input id="p1_start" type="time" step="900" /></td>
+            <th>Finish Time</th>
+            <td><input id="p1_finish" type="time" step="900" /></td>
+          </tr>
+          <tr>
+            <th>Description of Work</th>
+            <td colspan="3"><textarea id="p1_desc" placeholder="Describe the work performed..."></textarea></td>
+          </tr>
+          <tr>
+            <th>Crew (Name / Title)</th>
+            <td colspan="3">
+              <table class="form" id="p1_crew_tbl">
+                <thead><tr><th style="width:60%">Name</th><th>Title</th><th style="width:8%">—</th></tr></thead>
+                <tbody></tbody>
+              </table>
+              <div class="row-actions">
+                <button class="btn" type="button" onclick="addCrewRow('p1_crew_tbl')">+ Add Crew Member</button>
+              </div>
+            </td>
+          </tr>
         </table>
-        <div class="tbl-actions">
-          <button class="btn" type="button" onclick="addCrewRow()">+ Add Crew Member</button>
-        </div>
+
+        <!-- Project 2 -->
+        <h3 style="margin:18px 0 6px;">Project 2</h3>
+        <table class="form" data-proj="2">
+          <tr>
+            <th style="width:28%">Project Name</th>
+            <td><input id="p2_name" type="text" /></td>
+            <th style="width:22%">Contractor</th>
+            <td><input id="p2_contractor" type="text" /></td>
+          </tr>
+          <tr>
+            <th>Start Time</th>
+            <td><input id="p2_start" type="time" step="900" /></td>
+            <th>Finish Time</th>
+            <td><input id="p2_finish" type="time" step="900" /></td>
+          </tr>
+          <tr>
+            <th>Description of Work</th>
+            <td colspan="3"><textarea id="p2_desc"></textarea></td>
+          </tr>
+          <tr>
+            <th>Crew (Name / Title)</th>
+            <td colspan="3">
+              <table class="form" id="p2_crew_tbl">
+                <thead><tr><th style="width:60%">Name</th><th>Title</th><th style="width:8%">—</th></tr></thead>
+                <tbody></tbody>
+              </table>
+              <div class="row-actions">
+                <button class="btn" type="button" onclick="addCrewRow('p2_crew_tbl')">+ Add Crew Member</button>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Project 3 -->
+        <h3 style="margin:18px 0 6px;">Project 3</h3>
+        <table class="form" data-proj="3">
+          <tr>
+            <th style="width:28%">Project Name</th>
+            <td><input id="p3_name" type="text" /></td>
+            <th style="width:22%">Contractor</th>
+            <td><input id="p3_contractor" type="text" /></td>
+          </tr>
+          <tr>
+            <th>Start Time</th>
+            <td><input id="p3_start" type="time" step="900" /></td>
+            <th>Finish Time</th>
+            <td><input id="p3_finish" type="time" step="900" /></td>
+          </tr>
+          <tr>
+            <th>Description of Work</th>
+            <td colspan="3"><textarea id="p3_desc"></textarea></td>
+          </tr>
+          <tr>
+            <th>Crew (Name / Title)</th>
+            <td colspan="3">
+              <table class="form" id="p3_crew_tbl">
+                <thead><tr><th style="width:60%">Name</th><th>Title</th><th style="width:8%">—</th></tr></thead>
+                <tbody></tbody>
+              </table>
+              <div class="row-actions">
+                <button class="btn" type="button" onclick="addCrewRow('p3_crew_tbl')">+ Add Crew Member</button>
+              </div>
+            </td>
+          </tr>
+        </table>
       </div>
 
-      <!-- Project Expenses -->
+      <!-- Project Expenses (general) -->
       <div class="section">
         <strong>Project Expenses</strong>
-        <table id="expTable">
+        <table class="form" id="expTable">
           <thead>
             <tr>
-              <th style="width:8%">#</th>
+              <th style="width:6%">#</th>
               <th>Item</th>
-              <th style="width:15%">Qty</th>
-              <th style="width:18%">Price</th>
-              <th style="width:18%">Total</th>
-              <th style="width:10%">—</th>
+              <th style="width:12%">Qty</th>
+              <th style="width:14%">Price</th>
+              <th style="width:14%">Total</th>
+              <th style="width:8%">—</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
-        <div class="tbl-actions">
+        <div class="row-actions">
           <button class="btn" type="button" onclick="addExpRow()">+ Add Expense</button>
         </div>
       </div>
 
-      <!-- Equipment -->
+      <!-- Equipment (general) -->
       <div class="section">
         <strong>Equipment & Machinery Used</strong>
-        <table id="eqTable">
+        <table class="form" id="eqTable">
           <thead>
             <tr>
               <th>Equipment</th>
-              <th style="width:18%">Qty</th>
-              <th style="width:10%">—</th>
+              <th style="width:14%">Qty</th>
+              <th style="width:8%">—</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
-        <div class="tbl-actions">
+        <div class="row-actions">
           <button class="btn" type="button" onclick="addEqRow()">+ Add Equipment</button>
         </div>
-      </div>
-
-      <!-- Notes -->
-      <div class="section">
-        <label>Notes</label>
-        <textarea id="notes" placeholder="Any additional notes..."></textarea>
       </div>
 
       <div class="btn-row">
@@ -226,10 +282,10 @@
       </div>
     </div>
 
-    <!-- PRINT VIEW (filled with values, then turned into PDF) -->
+    <!-- PRINT VIEW (landscape) -->
     <div id="printView">
-      <div style="display:flex; align-items:center; gap:14px; margin-bottom:8px;">
-        <img src="logo.png" style="height:42px" />
+      <div style="display:flex; align-items:center; gap:14px; margin-bottom:4px;">
+        <img src="logo.png" style="height:40px" />
         <h2>Daily Erection Report</h2>
       </div>
 
@@ -239,31 +295,10 @@
         <div><strong>Engineer:</strong> <span data-p="engineer"></span></div>
       </div>
 
-      <div class="row">
-        <div><strong>Project:</strong> <span data-p="projectName"></span></div>
-        <div><strong>Start:</strong> <span data-p="startTime"></span></div>
-        <div><strong>Finish:</strong> <span data-p="finishTime"></span></div>
-      </div>
-      <div class="row">
-        <div><strong>Contractor:</strong> <span data-p="contractor"></span></div>
-      </div>
+      <!-- Three project tables in print -->
+      <div id="printProjects"></div>
 
       <div style="margin-top:8px;">
-        <strong>Description of Work</strong>
-        <div style="border:1px solid #111; padding:8px; min-height:70px;">
-          <span data-p="workDesc"></span>
-        </div>
-      </div>
-
-      <div style="margin-top:10px;">
-        <strong>Crew Members</strong>
-        <table id="printCrew">
-          <thead><tr><th style="width:65%">Name</th><th>Title</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-
-      <div style="margin-top:10px;">
         <strong>Project Expenses</strong>
         <table id="printExp">
           <thead><tr><th style="width:6%">#</th><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
@@ -271,19 +306,12 @@
         </table>
       </div>
 
-      <div style="margin-top:10px;">
+      <div style="margin-top:8px;">
         <strong>Equipment & Machinery Used</strong>
         <table id="printEq">
           <thead><tr><th>Equipment</th><th>Qty</th></tr></thead>
           <tbody></tbody>
         </table>
-      </div>
-
-      <div style="margin-top:10px;">
-        <strong>Notes</strong>
-        <div style="border:1px solid #111; padding:8px; min-height:60px;">
-          <span data-p="notes"></span>
-        </div>
       </div>
     </div>
   </div>
@@ -296,10 +324,9 @@
       const local = new Date(d.getTime() - off * 60000);
       return local.toISOString().split('T')[0];
     };
-    const dayName = (d) =>
-      d.toLocaleDateString(undefined, { weekday: 'long' });
+    const dayName = (d) => d.toLocaleDateString(undefined, { weekday: 'long' });
 
-    // auto Day/Date at load
+    // auto Day/Date at load + seed rows
     (function initMeta() {
       const dateEl = document.getElementById('date');
       const dayEl  = document.getElementById('day');
@@ -310,90 +337,124 @@
         const dd = new Date(dateEl.value + 'T00:00:00');
         dayEl.value = dayName(dd);
       });
-      // seed some empty rows for nicer UX
-      for (let i=0;i<3;i++) addCrewRow();
+      // Seed crew rows per project
+      ['p1_crew_tbl','p2_crew_tbl','p3_crew_tbl'].forEach(id=>{
+        for (let i=0;i<2;i++) addCrewRow(id);
+      });
+      // Seed general tables
       for (let i=0;i<2;i++) addExpRow();
       for (let i=0;i<2;i++) addEqRow();
     })();
 
-    function addCrewRow(name='', title='') {
+    // dynamic rows
+    function addCrewRow(tableId) {
+      const tbody = document.querySelector(`#${tableId} tbody`);
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><input type="text" placeholder="Name" value="${name}"></td>
-        <td><input type="text" placeholder="Title / Role" value="${title}"></td>
-        <td><button class="btn" type="button" onclick="this.closest('tr').remove()">✕</button></td>
-      `;
-      document.querySelector('#crewTable tbody').appendChild(tr);
-    }
-    function addExpRow(idx='', item='', qty='', price='', total='') {
-      const tbody = document.querySelector('#expTable tbody');
-      const rowNum = tbody.children.length + 1;
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${rowNum}</td>
-        <td><input type="text" placeholder="Item" value="${item}"></td>
-        <td><input type="text" placeholder="Qty" value="${qty}"></td>
-        <td><input type="text" placeholder="Price" value="${price}"></td>
-        <td><input type="text" placeholder="Total" value="${total}"></td>
-        <td><button class="btn" type="button" onclick="this.closest('tr').remove(); renumberExp()">✕</button></td>
+        <td><input type="text" placeholder="Name"></td>
+        <td><input type="text" placeholder="Title / Role"></td>
+        <td style="text-align:center"><button class="btn" type="button" onclick="this.closest('tr').remove()">✕</button></td>
       `;
       tbody.appendChild(tr);
+    }
+    function addExpRow() {
+      const tbody = document.querySelector('#expTable tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td></td>
+        <td><input type="text" placeholder="Item"></td>
+        <td><input type="text" placeholder="Qty"></td>
+        <td><input type="text" placeholder="Price"></td>
+        <td><input type="text" placeholder="Total"></td>
+        <td style="text-align:center"><button class="btn" type="button" onclick="this.closest('tr').remove(); renumberExp()">✕</button></td>
+      `;
+      tbody.appendChild(tr);
+      renumberExp();
     }
     function renumberExp() {
       [...document.querySelectorAll('#expTable tbody tr')].forEach((tr,i)=>{
         tr.children[0].textContent = i+1;
       });
     }
-    function addEqRow(equipment='', qty='') {
+    function addEqRow() {
+      const tbody = document.querySelector('#eqTable tbody');
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><input type="text" placeholder="Equipment" value="${equipment}"></td>
-        <td><input type="text" placeholder="Qty" value="${qty}"></td>
-        <td><button class="btn" type="button" onclick="this.closest('tr').remove()">✕</button></td>
+        <td><input type="text" placeholder="Equipment"></td>
+        <td><input type="text" placeholder="Qty"></td>
+        <td style="text-align:center"><button class="btn" type="button" onclick="this.closest('tr').remove()">✕</button></td>
       `;
-      document.querySelector('#eqTable tbody').appendChild(tr);
+      tbody.appendChild(tr);
     }
 
     function clearForm() {
-      document.getElementById('projectName').value = '';
-      document.getElementById('startTime').value = '';
-      document.getElementById('finishTime').value = '';
-      document.getElementById('contractor').value = '';
-      document.getElementById('workDesc').value = '';
-      document.getElementById('notes').value = '';
-      document.querySelector('#crewTable tbody').innerHTML = '';
+      // Clear project blocks
+      ['1','2','3'].forEach(n=>{
+        document.getElementById(`p${n}_name`).value = '';
+        document.getElementById(`p${n}_contractor`).value = '';
+        document.getElementById(`p${n}_start`).value = '';
+        document.getElementById(`p${n}_finish`).value = '';
+        document.getElementById(`p${n}_desc`).value = '';
+        document.querySelector(`#p${n}_crew_tbl tbody`).innerHTML = '';
+        for (let i=0;i<2;i++) addCrewRow(`p${n}_crew_tbl`);
+      });
+      // Clear general
       document.querySelector('#expTable tbody').innerHTML = '';
       document.querySelector('#eqTable tbody').innerHTML = '';
-      for (let i=0;i<2;i++) addCrewRow();
-      addExpRow(); addEqRow();
+      addExpRow(); addExpRow(); addEqRow(); addEqRow();
     }
 
-    // Build a clean print view and export to PDF
-    async function exportPDF() {
-      // Fill print view spans
-      const map = (id) => document.getElementById(id).value || '';
-      document.querySelector('[data-p="day"]').textContent        = map('day');
-      document.querySelector('[data-p="date"]').textContent       = map('date');
-      document.querySelector('[data-p="engineer"]').textContent   = document.getElementById('engineer').value;
-      document.querySelector('[data-p="projectName"]').textContent= map('projectName');
-      document.querySelector('[data-p="startTime"]').textContent  = map('startTime');
-      document.querySelector('[data-p="finishTime"]').textContent = map('finishTime');
-      document.querySelector('[data-p="contractor"]').textContent = map('contractor');
-      document.querySelector('[data-p="workDesc"]').textContent   = map('workDesc');
-      document.querySelector('[data-p="notes"]').textContent      = map('notes');
+    // Build print project tables
+    function buildPrintProject(n) {
+      const name = document.getElementById(`p${n}_name`).value.trim();
+      const contractor = document.getElementById(`p${n}_contractor`).value.trim();
+      const start = document.getElementById(`p${n}_start`).value;
+      const finish = document.getElementById(`p${n}_finish`).value;
+      const desc = document.getElementById(`p${n}_desc`).value.trim();
 
-      // Tables → print tables
-      const pCrew = document.querySelector('#printCrew tbody');
-      pCrew.innerHTML = '';
-      document.querySelectorAll('#crewTable tbody tr').forEach(tr=>{
-        const name  = tr.querySelector('td:nth-child(1) input').value.trim();
-        const title = tr.querySelector('td:nth-child(2) input').value.trim();
-        if (!name && !title) return;
-        const row = document.createElement('tr');
-        row.innerHTML = `<td>${name}</td><td>${title}</td>`;
-        pCrew.appendChild(row);
+      // Crew rows
+      const crewRows = [];
+      document.querySelectorAll(`#p${n}_crew_tbl tbody tr`).forEach(tr=>{
+        const nm = tr.querySelector('td:nth-child(1) input').value.trim();
+        const tt = tr.querySelector('td:nth-child(2) input').value.trim();
+        if (!nm && !tt) return;
+        crewRows.push(`<tr><td>${nm}</td><td>${tt}</td></tr>`);
       });
 
+      // Skip completely empty project
+      if (!name && !contractor && !start && !finish && !desc && crewRows.length === 0) return '';
+
+      return `
+      <table>
+        <tr><th style="width:22%">Project Name</th><td>${name || ''}</td>
+            <th style="width:18%">Contractor</th><td>${contractor || ''}</td></tr>
+        <tr><th>Start Time</th><td>${start || ''}</td>
+            <th>Finish Time</th><td>${finish || ''}</td></tr>
+        <tr><th>Description of Work</th><td colspan="3">${(desc || '').replace(/\n/g,'<br/>')}</td></tr>
+        <tr><th>Crew (Name / Title)</th>
+            <td colspan="3">
+              <table style="width:100%; border-collapse: collapse;">
+                <thead><tr><th style="width:60%">Name</th><th>Title</th></tr></thead>
+                <tbody>${crewRows.join('') || '<tr><td>&nbsp;</td><td>&nbsp;</td></tr>'}</tbody>
+              </table>
+            </td>
+        </tr>
+      </table>`;
+    }
+
+    // Export PDF (A4 landscape)
+    async function exportPDF() {
+      // Top meta
+      const map = (id) => document.getElementById(id).value || '';
+      document.querySelector('[data-p="day"]').textContent      = map('day');
+      document.querySelector('[data-p="date"]').textContent     = map('date');
+      document.querySelector('[data-p="engineer"]').textContent = document.getElementById('engineer').value;
+
+      // Projects
+      const printProjects = document.getElementById('printProjects');
+      printProjects.innerHTML = [1,2,3].map(buildPrintProject).filter(Boolean).join('<div style="height:8px"></div>');
+
+      // Expenses
       const pExp = document.querySelector('#printExp tbody');
       pExp.innerHTML = '';
       document.querySelectorAll('#expTable tbody tr').forEach((tr,i)=>{
@@ -407,6 +468,7 @@
         pExp.appendChild(row);
       });
 
+      // Equipment
       const pEq = document.querySelector('#printEq tbody');
       pEq.innerHTML = '';
       document.querySelectorAll('#eqTable tbody tr').forEach(tr=>{
@@ -418,7 +480,7 @@
         pEq.appendChild(row);
       });
 
-      // Show print view (invisible to user) and render to PDF
+      // Render to canvas then to PDF
       const pv = document.getElementById('printView');
       pv.style.display = 'block';
       const canvas = await html2canvas(pv, {scale: 2});
@@ -426,24 +488,15 @@
 
       const imgData = canvas.toDataURL('image/png');
       const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-      // Fit image to A4 width while keeping aspect
-      const pageW = 210, pageH = 297;
-      const imgWmm = pageW - 20;          // 10mm margins
+      const pageW = 297, pageH = 210;     // landscape a4
+      const margin = 8;
+      const imgWmm = pageW - margin*2;
       const imgHmm = imgWmm * (canvas.height / canvas.width);
-      let y = 10;
-      if (imgHmm <= pageH - 20) {
-        pdf.addImage(imgData, 'PNG', 10, y, imgWmm, imgHmm);
-      } else {
-        // Multi-page if content is long
-        let remaining = imgHmm;
-        let sX = 10, sY = 10;
-        let chunkH = pageH - 20;
-        // Simplified: scale once and slice vertically by drawing offsets
-        // (html2canvas provides the whole image; for long forms, using doc.html is another option)
-        pdf.addImage(imgData, 'PNG', 10, y, imgWmm, imgHmm);
-      }
+
+      // Single page add (content fits well for typical daily report; for overflow, add extra logic)
+      pdf.addImage(imgData, 'PNG', margin, margin, imgWmm, imgHmm);
 
       const filename = `Daily-Erection-Report_${map('date') || new Date().toISOString().slice(0,10)}.pdf`;
       pdf.save(filename);
