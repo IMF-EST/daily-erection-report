@@ -6,23 +6,43 @@
   <title>Daily Erection Report</title>
 
   <style>
-    body { font-family: system-ui, Arial; margin: 18px; background:#fafafa; }
+    body { font-family: system-ui, Arial; margin: 18px; background:#fafafa; color:#111; }
     .wrap { max-width: 980px; margin: 0 auto; }
-    .card { background:#fff; border: 1px solid #e5e5e5; border-radius: 14px; padding: 14px; margin: 12px 0; }
+
+    .card {
+      background:#fff; border: 1px solid #e5e5e5; border-radius: 14px;
+      padding: 14px; margin: 12px 0;
+    }
+
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-    label { display: block; font-size: 12px; color: #444; margin-bottom: 4px; }
+
+    label { display: block; font-size: 12px; color: #444; margin-bottom: 6px; }
+
+    /* Fix "text disappearing": give inputs consistent height + line-height + font-size */
     input, select, textarea {
-      width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 12px;
+      width: 100%;
+      padding: 12px 12px;
+      border: 1px solid #cfcfcf;
+      border-radius: 12px;
       box-sizing: border-box;
+      font-size: 15px;
+      line-height: 1.2;
+      color: #111;
+      background: #fff;
     }
-    textarea { min-height: 90px; resize: vertical; }
+    input, select { height: 46px; }
+    textarea { min-height: 100px; resize: vertical; }
+
+    input::placeholder, textarea::placeholder { color:#777; }
+
     button {
       padding: 10px 12px; border: 1px solid #111; background: #111; color: #fff;
       border-radius: 12px; cursor: pointer;
     }
     button.secondary { background: #fff; color: #111; }
     button.danger { background: #b00020; border-color: #b00020; }
+
     .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
     .muted { color:#666; font-size: 12px; }
     .divider { height: 1px; background: #eee; margin: 12px 0; }
@@ -30,13 +50,20 @@
     h3 { margin: 0 0 10px; }
     .topbar { display:flex; justify-content:space-between; align-items:center; gap:10px; }
 
-    /* PDF-friendly: avoid ugly outlines when exporting */
-    .pdf-mode input, .pdf-mode select, .pdf-mode textarea {
-      border: 1px solid #bbb;
+    /* Yellow highlight for each project header */
+    .projectBadge {
+      display: inline-block;
+      background: #ffe86b;
+      border: 1px solid #f0d84b;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-weight: 700;
     }
+
+    /* PDF mode */
+    .pdf-mode input, .pdf-mode select, .pdf-mode textarea { border: 1px solid #bbb; }
     .pdf-mode .no-print { display:none !important; }
 
-    /* Make form nicer on phones */
     @media (max-width: 720px){
       .row, .row3 { grid-template-columns: 1fr; }
       .topbar { flex-direction: column; align-items: stretch; }
@@ -53,9 +80,7 @@
 
   <div class="card no-print">
     <div class="topbar">
-      <div>
-        <h1>Daily Erection Report</h1>
-      </div>
+      <div><h1>Daily Erection Report</h1></div>
       <div class="actions">
         <button type="button" class="secondary" id="addProjectBtn">+ Add Project</button>
         <button type="button" id="exportPdfBtn">Export to PDF</button>
@@ -100,7 +125,10 @@
   <template id="projectTpl">
     <div class="card project">
       <div class="actions" style="justify-content: space-between;">
-        <strong>Project</strong>
+        <div class="actions" style="gap:10px;">
+          <span class="projectBadge">Project</span>
+          <strong class="projectTitleText"></strong>
+        </div>
         <div class="actions no-print">
           <button type="button" class="secondary addCrewBtn">+ Add Crew Member</button>
           <button type="button" class="danger removeProjectBtn">Remove Project</button>
@@ -119,6 +147,21 @@
       </div>
 
       <div class="divider"></div>
+
+      <!-- ✅ Project-level time -->
+      <div class="row">
+        <div>
+          <label>Project time start</label>
+          <input type="time" class="projTimeStart" required />
+        </div>
+        <div>
+          <label>Project time end</label>
+          <input type="time" class="projTimeEnd" required />
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
       <div class="crewWrap"></div>
     </div>
   </template>
@@ -130,7 +173,7 @@
         <button type="button" class="danger removeCrewBtn no-print">Remove</button>
       </div>
 
-      <div class="row3">
+      <div class="row">
         <div>
           <label>Name</label>
           <input class="crewName" required placeholder="Crew member name" />
@@ -139,16 +182,9 @@
           <label>Role</label>
           <select class="crewRole" required>
             <option value="">Select…</option>
-            <option value="Pro">Pro</option>
-            <option value="Helper">Helper</option>
+            <option value="فني">فني</option>
+            <option value="عامل">عامل</option>
           </select>
-        </div>
-        <div>
-          <label>Time (Start - End)</label>
-          <div class="row" style="grid-template-columns: 1fr 1fr; gap: 8px;">
-            <input type="time" class="timeStart" required />
-            <input type="time" class="timeEnd" required />
-          </div>
         </div>
       </div>
     </div>
@@ -166,18 +202,12 @@
   const exportPdfBtn = document.getElementById('exportPdfBtn');
   const printArea = document.getElementById('printArea');
 
-  function setStatus(text) {
-    statusMsg.textContent = text || '';
-  }
+  function setStatus(text) { statusMsg.textContent = text || ''; }
 
   function addCrew(crewWrap) {
     const node = crewTpl.content.cloneNode(true);
     const crewEl = node.querySelector('.crew');
-
-    crewEl.querySelector('.removeCrewBtn').addEventListener('click', () => {
-      crewEl.remove();
-    });
-
+    crewEl.querySelector('.removeCrewBtn').addEventListener('click', () => crewEl.remove());
     crewWrap.appendChild(crewEl);
   }
 
@@ -185,6 +215,15 @@
     const node = projectTpl.content.cloneNode(true);
     const projectEl = node.querySelector('.project');
     const crewWrap = projectEl.querySelector('.crewWrap');
+    const projectNameInput = projectEl.querySelector('.projectName');
+    const titleText = projectEl.querySelector('.projectTitleText');
+
+    // Show project name next to badge while typing (nice for scanning)
+    const syncTitle = () => {
+      const v = (projectNameInput.value || '').trim();
+      titleText.textContent = v ? `— ${v}` : '';
+    };
+    projectNameInput.addEventListener('input', syncTitle);
 
     projectEl.querySelector('.addCrewBtn').addEventListener('click', () => addCrew(crewWrap));
     projectEl.querySelector('.removeProjectBtn').addEventListener('click', () => projectEl.remove());
@@ -193,6 +232,7 @@
     addCrew(crewWrap);
 
     projectsWrap.appendChild(projectEl);
+    syncTitle();
     setStatus('');
   }
 
@@ -206,6 +246,7 @@
     const projects = projectsWrap.querySelectorAll('.project');
     if (projects.length === 0) return { ok: false, msg: 'Please add at least one project.' };
 
+    // Required fields check
     const required = printArea.querySelectorAll('[required]');
     for (const el of required) {
       if (!el.value) {
@@ -213,6 +254,10 @@
         return { ok: false, msg: 'Please complete all required fields before exporting.' };
       }
     }
+
+    // Optional: quick check end time after start time for each project (won't block if different shifts)
+    // You can enable blocking if you want later.
+
     return { ok: true };
   }
 
@@ -221,12 +266,8 @@
     if (!v.ok) { setStatus(v.msg); return; }
 
     setStatus('Generating PDF...');
-
-    // Add a CSS mode so the PDF looks clean + hide action buttons
     document.body.classList.add('pdf-mode');
-
-    // Wait a moment for layout to settle
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise(r => setTimeout(r, 120));
 
     const canvas = await html2canvas(printArea, {
       scale: 2,
@@ -239,13 +280,10 @@
     const imgData = canvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
 
-    // A4 in points
     const pdf = new jsPDF('p', 'pt', 'a4');
-
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
 
-    // Fit image to page width, and paginate if content is long
     const imgWidth = pageWidth;
     const imgHeight = canvas.height * (imgWidth / canvas.width);
 
@@ -257,12 +295,11 @@
       remaining -= pageHeight;
       if (remaining > 0) {
         pdf.addPage();
-        y -= pageHeight; // shift up for next page
+        y -= pageHeight;
       }
     }
 
-    // File name
-    const engineerName = document.getElementById('engineerName').value.trim().replace(/[^\w\- ]+/g, '');
+    const engineerName = document.getElementById('engineerName').value.trim().replace(/[^\w\- \u0600-\u06FF]+/g, '');
     const reportDate = document.getElementById('reportDate').value || 'date';
     const fileName = `${reportDate} - ${engineerName || 'Engineer'} - Daily Erection Report.pdf`;
 
@@ -272,7 +309,6 @@
     setStatus('PDF downloaded.');
   }
 
-  // Wire buttons
   addProjectBtn.addEventListener('click', addProject);
   exportPdfBtn.addEventListener('click', exportToPdf);
 
