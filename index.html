@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Daily Erection Report</title>
+  <style>
+    body { font-family: system-ui, Arial; margin: 20px; max-width: 980px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 14px; margin: 12px 0; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    label { display: block; font-size: 12px; color: #444; margin-bottom: 4px; }
+    input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 10px; }
+    textarea { min-height: 90px; }
+    button { padding: 10px 12px; border: 1px solid #111; background: #111; color: #fff; border-radius: 10px; cursor: pointer; }
+    button.secondary { background: #fff; color: #111; }
+    button.danger { background: #b00020; border-color: #b00020; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .muted { color:#666; font-size: 12px; }
+    .divider { height: 1px; background: #eee; margin: 12px 0; }
+  </style>
+</head>
+<body>
+  <h1>Daily Erection Report</h1>
+  <p class="muted">Hosted on GitHub Pages. Submissions require a backend (Formspree / Google Sheets).</p>
+
+  <!-- ✅ Option A (recommended): Formspree endpoint -->
+  <!-- Create a Formspree form and paste your endpoint below -->
+  <form id="reportForm" method="POST" action="PASTE_FORMSPREE_ENDPOINT_HERE">
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>Name of engineer</label>
+          <input name="engineerName" required placeholder="Engineer name" />
+        </div>
+        <div>
+          <label>Date</label>
+          <input type="date" name="reportDate" required />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="actions">
+        <button type="button" class="secondary" id="addProjectBtn">+ Add Project</button>
+      </div>
+      <div id="projectsWrap"></div>
+    </div>
+
+    <div class="card">
+      <h3>Expenses (General for the day)</h3>
+      <p class="muted">Not project-specific. Add any expenses for this day.</p>
+      <label>Expenses details</label>
+      <textarea name="expenses" placeholder="Fuel, bolts, meals, taxi, etc..."></textarea>
+    </div>
+
+    <!-- Hidden JSON field with full structured data -->
+    <input type="hidden" name="structuredJson" id="structuredJson" />
+
+    <div class="card">
+      <button type="submit">Submit Daily Report</button>
+      <p class="muted">Tip: This submits the structured JSON too (useful for Sheets/database later).</p>
+    </div>
+  </form>
+
+  <template id="projectTpl">
+    <div class="card project">
+      <div class="actions" style="justify-content: space-between;">
+        <strong>Project</strong>
+        <button type="button" class="danger removeProjectBtn">Remove Project</button>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Project name</label>
+          <input class="projectName" placeholder="e.g., Tower A" required />
+        </div>
+        <div>
+          <label>Contractor name</label>
+          <input class="contractorName" placeholder="e.g., ABC Contracting" required />
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="actions">
+        <button type="button" class="secondary addCrewBtn">+ Add Crew Member</button>
+      </div>
+
+      <div class="crewWrap"></div>
+
+      <!-- Hidden field to keep readable text submission too -->
+      <textarea class="projectTextDump" name="projectText
