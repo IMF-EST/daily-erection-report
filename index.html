@@ -4,90 +4,282 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Daily Erection Report</title>
+
   <style>
-    body { font-family: system-ui, Arial; margin: 20px; max-width: 980px; }
-    .card { border: 1px solid #ddd; border-radius: 12px; padding: 14px; margin: 12px 0; }
+    body { font-family: system-ui, Arial; margin: 18px; background:#fafafa; }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    .card { background:#fff; border: 1px solid #e5e5e5; border-radius: 14px; padding: 14px; margin: 12px 0; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
     label { display: block; font-size: 12px; color: #444; margin-bottom: 4px; }
-    input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 10px; }
-    textarea { min-height: 90px; }
-    button { padding: 10px 12px; border: 1px solid #111; background: #111; color: #fff; border-radius: 10px; cursor: pointer; }
+    input, select, textarea {
+      width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 12px;
+      box-sizing: border-box;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+    button {
+      padding: 10px 12px; border: 1px solid #111; background: #111; color: #fff;
+      border-radius: 12px; cursor: pointer;
+    }
     button.secondary { background: #fff; color: #111; }
     button.danger { background: #b00020; border-color: #b00020; }
-    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
     .muted { color:#666; font-size: 12px; }
     .divider { height: 1px; background: #eee; margin: 12px 0; }
-  </style>
-</head>
-<body>
-  <h1>Daily Erection Report</h1>
-  <p class="muted">Hosted on GitHub Pages. Submissions require a backend (Formspree / Google Sheets).</p>
+    h1 { margin: 0; }
+    h3 { margin: 0 0 10px; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; gap:10px; }
 
-  <!-- ✅ Option A (recommended): Formspree endpoint -->
-  <!-- Create a Formspree form and paste your endpoint below -->
-  <form id="reportForm" method="POST" action="PASTE_FORMSPREE_ENDPOINT_HERE">
+    /* PDF-friendly: avoid ugly outlines when exporting */
+    .pdf-mode input, .pdf-mode select, .pdf-mode textarea {
+      border: 1px solid #bbb;
+    }
+    .pdf-mode .no-print { display:none !important; }
+
+    /* Make form nicer on phones */
+    @media (max-width: 720px){
+      .row, .row3 { grid-template-columns: 1fr; }
+      .topbar { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+
+  <!-- Libraries to generate PDF -->
+  <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+</head>
+
+<body>
+<div class="wrap">
+
+  <div class="card no-print">
+    <div class="topbar">
+      <div>
+        <h1>Daily Erection Report</h1>
+      </div>
+      <div class="actions">
+        <button type="button" class="secondary" id="addProjectBtn">+ Add Project</button>
+        <button type="button" id="exportPdfBtn">Export to PDF</button>
+      </div>
+    </div>
+    <div class="muted" id="statusMsg" style="margin-top:8px;"></div>
+  </div>
+
+  <!-- This is what we export to PDF -->
+  <div id="printArea">
     <div class="card">
       <div class="row">
         <div>
           <label>Name of engineer</label>
-          <input name="engineerName" required placeholder="Engineer name" />
+          <input id="engineerName" required placeholder="Engineer name" />
         </div>
         <div>
           <label>Date</label>
-          <input type="date" name="reportDate" required />
+          <input type="date" id="reportDate" required />
         </div>
       </div>
     </div>
 
     <div class="card">
-      <div class="actions">
-        <button type="button" class="secondary" id="addProjectBtn">+ Add Project</button>
-      </div>
+      <h3>Projects</h3>
       <div id="projectsWrap"></div>
     </div>
 
     <div class="card">
-      <h3>Expenses (General for the day)</h3>
-      <p class="muted">Not project-specific. Add any expenses for this day.</p>
+      <h3>Expenses</h3>
       <label>Expenses details</label>
-      <textarea name="expenses" placeholder="Fuel, bolts, meals, taxi, etc..."></textarea>
+      <textarea id="expenses" placeholder="Fuel, bolts, meals, taxi, etc..."></textarea>
     </div>
-
-    <!-- Hidden JSON field with full structured data -->
-    <input type="hidden" name="structuredJson" id="structuredJson" />
 
     <div class="card">
-      <button type="submit">Submit Daily Report</button>
-      <p class="muted">Tip: This submits the structured JSON too (useful for Sheets/database later).</p>
+      <h3>Notes</h3>
+      <label>General notes</label>
+      <textarea id="notes" placeholder="Any issues, delays, safety notes, site conditions..."></textarea>
     </div>
-  </form>
+  </div>
 
   <template id="projectTpl">
     <div class="card project">
       <div class="actions" style="justify-content: space-between;">
         <strong>Project</strong>
-        <button type="button" class="danger removeProjectBtn">Remove Project</button>
+        <div class="actions no-print">
+          <button type="button" class="secondary addCrewBtn">+ Add Crew Member</button>
+          <button type="button" class="danger removeProjectBtn">Remove Project</button>
+        </div>
       </div>
 
       <div class="row">
         <div>
           <label>Project name</label>
-          <input class="projectName" placeholder="e.g., Tower A" required />
+          <input class="projectName" required placeholder="e.g., Building A" />
         </div>
         <div>
           <label>Contractor name</label>
-          <input class="contractorName" placeholder="e.g., ABC Contracting" required />
+          <input class="contractorName" required placeholder="e.g., XYZ Contractor" />
         </div>
       </div>
 
       <div class="divider"></div>
+      <div class="crewWrap"></div>
+    </div>
+  </template>
 
-      <div class="actions">
-        <button type="button" class="secondary addCrewBtn">+ Add Crew Member</button>
+  <template id="crewTpl">
+    <div class="card crew" style="margin-top:10px;">
+      <div class="actions" style="justify-content: space-between;">
+        <strong>Crew member</strong>
+        <button type="button" class="danger removeCrewBtn no-print">Remove</button>
       </div>
 
-      <div class="crewWrap"></div>
+      <div class="row3">
+        <div>
+          <label>Name</label>
+          <input class="crewName" required placeholder="Crew member name" />
+        </div>
+        <div>
+          <label>Role</label>
+          <select class="crewRole" required>
+            <option value="">Select…</option>
+            <option value="Pro">Pro</option>
+            <option value="Helper">Helper</option>
+          </select>
+        </div>
+        <div>
+          <label>Time (Start - End)</label>
+          <div class="row" style="grid-template-columns: 1fr 1fr; gap: 8px;">
+            <input type="time" class="timeStart" required />
+            <input type="time" class="timeEnd" required />
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
 
-      <!-- Hidden field to keep readable text submission too -->
-      <textarea class="projectTextDump" name="projectText
+</div>
+
+<script>
+(function () {
+  const statusMsg = document.getElementById('statusMsg');
+  const projectsWrap = document.getElementById('projectsWrap');
+  const projectTpl = document.getElementById('projectTpl');
+  const crewTpl = document.getElementById('crewTpl');
+  const addProjectBtn = document.getElementById('addProjectBtn');
+  const exportPdfBtn = document.getElementById('exportPdfBtn');
+  const printArea = document.getElementById('printArea');
+
+  function setStatus(text) {
+    statusMsg.textContent = text || '';
+  }
+
+  function addCrew(crewWrap) {
+    const node = crewTpl.content.cloneNode(true);
+    const crewEl = node.querySelector('.crew');
+
+    crewEl.querySelector('.removeCrewBtn').addEventListener('click', () => {
+      crewEl.remove();
+    });
+
+    crewWrap.appendChild(crewEl);
+  }
+
+  function addProject() {
+    const node = projectTpl.content.cloneNode(true);
+    const projectEl = node.querySelector('.project');
+    const crewWrap = projectEl.querySelector('.crewWrap');
+
+    projectEl.querySelector('.addCrewBtn').addEventListener('click', () => addCrew(crewWrap));
+    projectEl.querySelector('.removeProjectBtn').addEventListener('click', () => projectEl.remove());
+
+    // Start each new project with 1 crew row
+    addCrew(crewWrap);
+
+    projectsWrap.appendChild(projectEl);
+    setStatus('');
+  }
+
+  function validateBeforePdf() {
+    const engineerName = document.getElementById('engineerName').value.trim();
+    const reportDate = document.getElementById('reportDate').value;
+
+    if (!engineerName) return { ok: false, msg: 'Please fill Name of engineer.' };
+    if (!reportDate) return { ok: false, msg: 'Please fill Date.' };
+
+    const projects = projectsWrap.querySelectorAll('.project');
+    if (projects.length === 0) return { ok: false, msg: 'Please add at least one project.' };
+
+    const required = printArea.querySelectorAll('[required]');
+    for (const el of required) {
+      if (!el.value) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return { ok: false, msg: 'Please complete all required fields before exporting.' };
+      }
+    }
+    return { ok: true };
+  }
+
+  async function exportToPdf() {
+    const v = validateBeforePdf();
+    if (!v.ok) { setStatus(v.msg); return; }
+
+    setStatus('Generating PDF...');
+
+    // Add a CSS mode so the PDF looks clean + hide action buttons
+    document.body.classList.add('pdf-mode');
+
+    // Wait a moment for layout to settle
+    await new Promise(r => setTimeout(r, 100));
+
+    const canvas = await html2canvas(printArea, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      scrollX: 0,
+      scrollY: -window.scrollY
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+
+    // A4 in points
+    const pdf = new jsPDF('p', 'pt', 'a4');
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    // Fit image to page width, and paginate if content is long
+    const imgWidth = pageWidth;
+    const imgHeight = canvas.height * (imgWidth / canvas.width);
+
+    let y = 0;
+    let remaining = imgHeight;
+
+    while (remaining > 0) {
+      pdf.addImage(imgData, 'PNG', 0, y, imgWidth, imgHeight, undefined, 'FAST');
+      remaining -= pageHeight;
+      if (remaining > 0) {
+        pdf.addPage();
+        y -= pageHeight; // shift up for next page
+      }
+    }
+
+    // File name
+    const engineerName = document.getElementById('engineerName').value.trim().replace(/[^\w\- ]+/g, '');
+    const reportDate = document.getElementById('reportDate').value || 'date';
+    const fileName = `${reportDate} - ${engineerName || 'Engineer'} - Daily Erection Report.pdf`;
+
+    pdf.save(fileName);
+
+    document.body.classList.remove('pdf-mode');
+    setStatus('PDF downloaded.');
+  }
+
+  // Wire buttons
+  addProjectBtn.addEventListener('click', addProject);
+  exportPdfBtn.addEventListener('click', exportToPdf);
+
+  // Start with 1 project automatically
+  addProject();
+})();
+</script>
+
+</body>
+</html>
